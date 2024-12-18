@@ -1,27 +1,33 @@
 module.exports = {
-    root: true,
-    env: {
-        node: true,
+  root: true,
+  env: {
+    node: true,
+    "vue/setup-compiler-macros": true,
+  },
+  extends: [
+    "plugin:vue/vue3-essential",
+    "eslint:recommended",
+    "@vue/typescript/recommended",
+    "plugin:prettier/recommended",
+  ],
+  parserOptions: {
+    ecmaVersion: 2020,
+  },
+  rules: {
+    "no-console": process.env.NODE_ENV === "production" ? "warn" : "off",
+    "no-debugger": process.env.NODE_ENV === "production" ? "warn" : "off",
+    "@typescript-eslint/no-var-requires": "warn",
+    "vue/multi-word-component-names": "off",
+  },
+  overrides: [
+    {
+      files: [
+        "**/__tests__/*.{j,t}s?(x)",
+        "**/tests/unit/**/*.spec.{j,t}s?(x)",
+      ],
+      env: {
+        jest: true,
+      },
     },
-    extends: [
-        "plugin:vue/vue3-essential",
-        "@vue/typescript",
-        "plugin:@typescript-eslint/eslint-recommended",
-    ],
-    parserOptions: {
-        parser: '@typescript-eslint/parser',
-        ecmaVersion: 2020,
-    },
-    //plugins: ["prettier"],
-    rules: {
-        // "no-console": process.env.NODE_ENV === "production" ? "error" : "off",
-        // "no-debugger": process.env.NODE_ENV === "production" ? "error" : "off",
-        // "vue/component-name-in-template-casing": ["error", "PascalCase"],
-        'vue/multi-word-component-names': 0,
-        "no-restricted-imports": ["error", {
-            patterns: [
-                "solid-b2b-showcase-libs/*/*"
-            ]
-        }]
-    },
+  ],
 };
