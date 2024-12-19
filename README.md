@@ -1,12 +1,8 @@
-# auth
+# SOLID B2B Showcase - Auth App
 
-This is a standalone application. This means all its dependencies are defined in its package.json directly. 
-It is not inheriting any deps (or should not) from the root of this monorepo!
+[![CI](https://github.com/DATEV-Research/Solid-authorization-app/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/DATEV-Research/Solid-authorization-app/actions/workflows/ci.yml)
 
-Furthermore, due to the fact, that we don't publish the shared libraries on npm or so, we use a direct github.com 
-URI as a dependency for this application (and the others). For that reason, you need to push your changes and run 
-npm install (e.g. `npm i github:mandat-project/hackathon-demo#BRANCHNAME -w apps/auth`) afterward, to get the latest 
-library versions from GitHub.
+This is the authorization app for the SOLID B2B Showcase. It shows pending and active authorizations and the user can revoke any permitted authorization at any time.
 
 ## Project setup
 ```
