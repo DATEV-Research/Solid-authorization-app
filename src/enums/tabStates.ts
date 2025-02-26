@@ -1,4 +1,4 @@
-export enum TAB_STATE {
+export enum STATE {
   Active = "Active",
   Pending = "Pending",
   Revoked = "Revoked",

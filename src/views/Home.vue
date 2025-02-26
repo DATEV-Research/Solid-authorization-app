@@ -14,33 +14,19 @@
     </header>
     <div class="w-full md:w-11 xl:w-9 mx-auto my-5">
       <TabView @tabClick="tabChange">
-        <TabPanel
-          :header="TAB_STATE.Active"
-          @tab-click="tabChange(TAB_STATE.Active)"
-        ></TabPanel>
-        <TabPanel
-          :header="TAB_STATE.Pending"
-          @click="tabChange(TAB_STATE.Pending)"
-        ></TabPanel>
-        <TabPanel
-          :header="TAB_STATE.Revoked"
-          @click="tabChange(TAB_STATE.Revoked)"
-        ></TabPanel>
-        <TabPanel
-          :header="TAB_STATE.Denied"
-          @click="tabChange(TAB_STATE.Denied)"
-        ></TabPanel>
+        <TabPanel v-for="tab in tabs" :header="tab" :key="tab"> </TabPanel>
       </TabView>
     </div>
 
     <div class="w-full md:w-11 xl:w-9 mx-auto my-5 flex flex-column gap-5">
       <div
         v-if="
-          activeTab === TAB_STATE.Active ||
-          activeTab === TAB_STATE.Revoked ||
-          activeTab === TAB_STATE.Denied
+          activeTab === STATE.Active ||
+          activeTab === STATE.Revoked ||
+          activeTab === STATE.Denied
         "
       >
+        <h2 v-if="noRequestPresent">No {{ activeTab }} Request is found.</h2>
         <article
           v-for="accessReceiptResource in accessReceiptInformationResources"
           :key="accessReceiptResource + reloadFlag"
@@ -54,7 +40,7 @@
               :accessAuthzArchiveContainer="accessAuthzArchiveContainer"
               :tabState="activeTab"
               @isReceiptForRequests="addRequestsToHandled"
-              @status="updateStatusCount"
+              @requestStatus="updateStatusCount"
             />
             <template #fallback>
               <Card>
@@ -77,9 +63,9 @@
           </Suspense>
         </article>
       </div>
-      <div v-if="activeTab === TAB_STATE.Pending">
-        <div v-if="totalPending === 0">
-          <h2>No Active Access is found</h2>
+      <div v-if="activeTab === STATE.Pending">
+        <div v-if="displayAccessRequests.length === 0">
+          <h2>No Pending Access is found</h2>
         </div>
         <article
           v-for="accessRequestResource in displayAccessRequests"
@@ -140,7 +126,7 @@ import { Store } from "n3";
 import { useToast } from "primevue/usetoast";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
-import { TAB_STATE } from "@/enums/tabStates";
+import { STATE } from "@/enums/tabStates";
 
 const toast = useToast();
 
@@ -151,17 +137,32 @@ const { accessInbox, storage } = useSolidProfile();
 
 const props = defineProps(["inspectedAccessRequestURI", "redirect"]);
 
-const activeTab = ref(TAB_STATE.Active);
-const totalActive = ref(0);
-const totalRevoked = ref(0);
-const totalDeclined = ref(0);
+const activeTab = ref(STATE.Active);
 
-const tabs = [
-  TAB_STATE.Active,
-  TAB_STATE.Pending,
-  TAB_STATE.Revoked,
-  TAB_STATE.Denied,
-];
+let requestStates = ref([]);
+const noActiveRequest = computed(
+  () =>
+    requestStates.value.filter((request) => request.status === STATE.Active)
+      .length === 0
+);
+
+const noRevokedRequest = computed(
+  () =>
+    requestStates.value.filter((request) => request.status === STATE.Revoked)
+      .length === 0
+);
+const noDeclinedRequest = computed(
+  () =>
+    requestStates.value.filter((request) => request.status === STATE.Denied)
+      .length === 0
+);
+const noRequestPresent = computed(
+  () =>
+    (noActiveRequest.value && activeTab.value === STATE.Active) ||
+    (noRevokedRequest.value && activeTab.value === STATE.Revoked) ||
+    (noDeclinedRequest.value && activeTab.value === STATE.Denied)
+);
+const tabs = [STATE.Active, STATE.Pending, STATE.Revoked, STATE.Denied];
 
 // keep track of access requests
 const accessRequestInformationResources = ref<Array<string>>([]);
@@ -267,18 +268,13 @@ function tabChange(event) {
 }
 
 function updateStatusCount(status) {
-  switch (status) {
-    case TAB_STATE.Active:
-      totalActive.value++;
-      break;
-    case TAB_STATE.Revoked:
-      totalRevoked.value++;
-      break;
-    case TAB_STATE.Denied:
-      totalDeclined.value++;
-      break;
-    default:
-      break;
+  const index = requestStates.value.findIndex(
+    (request) => request.accessAuthorizations === status.accessAuthorizations
+  );
+  if (index !== -1) {
+    requestStates.value[index] = status;
+  } else {
+    requestStates.value.push(status);
   }
 }
 // setup done, now do stuff
