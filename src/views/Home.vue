@@ -12,74 +12,110 @@
         />
       </h1>
     </header>
+    <div class="w-full md:w-11 xl:w-9 mx-auto my-5">
+      <TabView @tabClick="tabChange">
+        <TabPanel
+          :header="TAB_STATE.Active"
+          @tab-click="tabChange(TAB_STATE.Active)"
+        ></TabPanel>
+        <TabPanel
+          :header="TAB_STATE.Pending"
+          @click="tabChange(TAB_STATE.Pending)"
+        ></TabPanel>
+        <TabPanel
+          :header="TAB_STATE.Revoked"
+          @click="tabChange(TAB_STATE.Revoked)"
+        ></TabPanel>
+        <TabPanel
+          :header="TAB_STATE.Denied"
+          @click="tabChange(TAB_STATE.Denied)"
+        ></TabPanel>
+      </TabView>
+    </div>
 
-    <div class="flex flex-column gap-5 w-full md:w-11 xl:w-9 mx-auto my-5">
-      <article
-        v-for="accessRequestResource in displayAccessRequests"
-        :key="accessRequestResource + reloadFlag"
+    <div class="w-full md:w-11 xl:w-9 mx-auto my-5 flex flex-column gap-5">
+      <div
+        v-if="
+          activeTab === TAB_STATE.Active ||
+          activeTab === TAB_STATE.Revoked ||
+          activeTab === TAB_STATE.Denied
+        "
       >
-        <Suspense>
-          <AccessRequest
-            :informationResourceURI="accessRequestResource"
-            :redirect="redirect"
-            :accessReceiptContainer="accessReceiptContainer"
-            :accessAuthzContainer="accessAuthzContainer"
-            :dataAuthzContainer="dataAuthzContainer"
-            @createdAccessReceipt="refreshAccessReceiptInformationResources"
-          />
-          <template #fallback>
-            <Card class="h-15rem">
-              <template #content>
-                <Skeleton width="10rem" class="mb-2"></Skeleton>
-                <Skeleton width="5rem" class="mb-2"></Skeleton>
-                <Skeleton class="mb-2"></Skeleton>
-                <Skeleton width="2rem" class="mb-2"></Skeleton>
-                <span>
-                  {{ $t("loadingAuthorization") }}
-                  {{
-                    accessRequestResource.split("/")[
-                      accessRequestResource.split("/").length - 1
-                    ]
-                  }}
-                </span>
-              </template>
-            </Card>
-          </template>
-        </Suspense>
-      </article>
-
-      <article
-        v-for="accessReceiptResource in accessReceiptInformationResources"
-        :key="accessReceiptResource + reloadFlag"
-      >
-        <Suspense>
-          <AccessReceipt
-            :informationResourceURI="accessReceiptResource"
-            :accessAuthzContainer="accessAuthzContainer"
-            :redirect="redirect"
-            :accessAuthzArchiveContainer="accessAuthzArchiveContainer"
-            @isReceiptForRequests="addRequestsToHandled"
-          />
-          <template #fallback>
-            <Card>
-              <template #content>
-                <Skeleton width="10rem" class="mb-2"></Skeleton>
-                <Skeleton width="5rem" class="mb-2"></Skeleton>
-                <Skeleton class="mb-2"></Skeleton>
-                <Skeleton width="2rem" class="mb-2"></Skeleton>
-                <span>
-                  {{ $t("loadingAccessReceipt") }}
-                  {{
-                    accessReceiptResource.split("/")[
-                      accessReceiptResource.split("/").length - 1
-                    ]
-                  }}
-                </span>
-              </template>
-            </Card>
-          </template>
-        </Suspense>
-      </article>
+        <article
+          v-for="accessReceiptResource in accessReceiptInformationResources"
+          :key="accessReceiptResource + reloadFlag"
+        >
+          <Suspense>
+            <!-- Active and revoke or denied -->
+            <AccessReceipt
+              :informationResourceURI="accessReceiptResource"
+              :accessAuthzContainer="accessAuthzContainer"
+              :redirect="redirect"
+              :accessAuthzArchiveContainer="accessAuthzArchiveContainer"
+              :tabState="activeTab"
+              @isReceiptForRequests="addRequestsToHandled"
+              @status="updateStatusCount"
+            />
+            <template #fallback>
+              <Card>
+                <template #content>
+                  <Skeleton width="10rem" class="mb-2"></Skeleton>
+                  <Skeleton width="5rem" class="mb-2"></Skeleton>
+                  <Skeleton class="mb-2"></Skeleton>
+                  <Skeleton width="2rem" class="mb-2"></Skeleton>
+                  <span>
+                    {{ $t("loadingAccessReceipt") }}
+                    {{
+                      accessReceiptResource.split("/")[
+                        accessReceiptResource.split("/").length - 1
+                      ]
+                    }}
+                  </span>
+                </template>
+              </Card>
+            </template>
+          </Suspense>
+        </article>
+      </div>
+      <div v-if="activeTab === TAB_STATE.Pending">
+        <div v-if="totalPending === 0">
+          <h2>No Active Access is found</h2>
+        </div>
+        <article
+          v-for="accessRequestResource in displayAccessRequests"
+          :key="accessRequestResource + reloadFlag"
+        >
+          <Suspense>
+            <AccessRequest
+              :informationResourceURI="accessRequestResource"
+              :redirect="redirect"
+              :accessReceiptContainer="accessReceiptContainer"
+              :accessAuthzContainer="accessAuthzContainer"
+              :dataAuthzContainer="dataAuthzContainer"
+              :tabState="activeTab"
+              @createdAccessReceipt="refreshAccessReceiptInformationResources"
+            />
+            <template #fallback>
+              <Card class="h-15rem">
+                <template #content>
+                  <Skeleton width="10rem" class="mb-2"></Skeleton>
+                  <Skeleton width="5rem" class="mb-2"></Skeleton>
+                  <Skeleton class="mb-2"></Skeleton>
+                  <Skeleton width="2rem" class="mb-2"></Skeleton>
+                  <span>
+                    {{ $t("loadingAuthorization") }}
+                    {{
+                      accessRequestResource.split("/")[
+                        accessRequestResource.split("/").length - 1
+                      ]
+                    }}
+                  </span>
+                </template>
+              </Card>
+            </template>
+          </Suspense>
+        </article>
+      </div>
     </div>
   </section>
 </template>
@@ -104,6 +140,7 @@ import { Store } from "n3";
 import { useToast } from "primevue/usetoast";
 import { computed, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { TAB_STATE } from "@/enums/tabStates";
 
 const toast = useToast();
 
@@ -113,6 +150,18 @@ const { session } = useSolidSession();
 const { accessInbox, storage } = useSolidProfile();
 
 const props = defineProps(["inspectedAccessRequestURI", "redirect"]);
+
+const activeTab = ref(TAB_STATE.Active);
+const totalActive = ref(0);
+const totalRevoked = ref(0);
+const totalDeclined = ref(0);
+
+const tabs = [
+  TAB_STATE.Active,
+  TAB_STATE.Pending,
+  TAB_STATE.Revoked,
+  TAB_STATE.Denied,
+];
 
 // keep track of access requests
 const accessRequestInformationResources = ref<Array<string>>([]);
@@ -213,6 +262,25 @@ watch(
   { immediate: true }
 );
 
+function tabChange(event) {
+  activeTab.value = tabs[event.index];
+}
+
+function updateStatusCount(status) {
+  switch (status) {
+    case TAB_STATE.Active:
+      totalActive.value++;
+      break;
+    case TAB_STATE.Revoked:
+      totalRevoked.value++;
+      break;
+    case TAB_STATE.Denied:
+      totalDeclined.value++;
+      break;
+    default:
+      break;
+  }
+}
 // setup done, now do stuff
 
 /**

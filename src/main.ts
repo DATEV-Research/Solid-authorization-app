@@ -11,6 +11,8 @@ import "@datev-research/mandat-shared-theme/theme.css";
 // import "@/libs/theme/dist/theme.css";
 import "primeicons/primeicons.css";
 import "@/assets/styles.scss";
+import TabView from "primevue/tabview";
+import TabPanel from "primevue/tabpanel";
 
 export const i18n = createI18n({
   locale: "en",
@@ -22,4 +24,6 @@ export const i18n = createI18n({
 const app = createApp(App);
 setupApp(app, router);
 app.use(i18n);
+app.component("TabView", TabView);
+app.component("TabPanel", TabPanel);
 app.mount("#app");
