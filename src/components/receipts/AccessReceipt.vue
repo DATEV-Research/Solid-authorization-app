@@ -1,5 +1,5 @@
 <template>
-  <div class="accessReceipt">
+  <div class="accessReceipt" v-show="status === props.tabState">
     <Card>
       <template #title>
         <div class="mb-3">
@@ -133,14 +133,16 @@ import { NamedNode, Store } from "n3";
 import { useToast } from "primevue/usetoast";
 import { computed, reactive, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
+import { STATE } from "@/enums/tabStates";
 
 const props = defineProps([
   "informationResourceURI",
   "accessAuthzContainer",
   "redirect",
   "accessAuthzArchiveContainer",
+  "tabState",
 ]);
-const emit = defineEmits(["isReceiptForRequests"]);
+const emit = defineEmits(["isReceiptForRequests", "requestStatus"]);
 
 const { session } = useSolidSession();
 const toast = useToast();
@@ -195,12 +197,12 @@ const accessAuthorizations = computed(() =>
 );
 
 const isRevokedOrDenied = computed(() => !nonEmptyAuthorizations.value.length);
-const status = computed<"Active" | "Revoked" | "Denied">(() =>
+const status = computed<STATE.Active | STATE.Revoked | STATE.Denied>(() =>
   isRevokedOrDenied.value
     ? accessAuthorizations.value.length > 0
-      ? "Revoked"
-      : "Denied"
-    : "Active"
+      ? STATE.Revoked
+      : STATE.Denied
+    : STATE.Active
 );
 
 // get access request data
@@ -396,6 +398,16 @@ _:rename a solid:InsertDeletePatch;
     state.informationResourceStore.getQuads(null, null, null, null)
   );
 }
+watch(
+  () => status.value,
+  () => {
+    emit("requestStatus", {
+      status: status.value,
+      accessAuthorizations: accessAuthorizations.value[0],
+    });
+  },
+  { immediate: true }
+);
 </script>
 
 <style scoped></style>
